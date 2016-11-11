@@ -46,7 +46,7 @@
 
 #define SBIT_PWM_DE_4 4
 
-// PwmOut led1 ( p26 );
+PwmOut led1 ( p26 );
 PwmDoubleOut led2 ( p23 );
 DigitalIn dutyinc( p21 );
 DigitalIn dutydec( p22 );
@@ -58,17 +58,17 @@ TextLCD lcd( p15, p16, p17, p18, p19, p20 );
 int main() {
 
 	float dutyCycle = 0.5f;
-	float dephase = 0.0f;
+	float dephase = 0.25f;
 	dutyinc.mode( PullUp );
 	dutydec.mode( PullUp );
 	dephinc.mode( PullUp );
 	dephdec.mode( PullUp );
 
-	// led2.period_us( 1 );
-	// led2.dephase( dephase );
-	// led2.write( dutyCycle );
+	led2.period_us( 1 );
+	led2.dephase( dephase );
+	led2.write( dutyCycle );
 	// led1.period_us( 1 );
-	// led1.write( dutyCycle );
+	led1.write( dutyCycle );
 
 	while ( 1 ) {
 		if ( dutyinc.read() == 0 ) {

@@ -82,11 +82,10 @@ void pwmdoubleout_init( pwmdoubleout_t* obj, PinName pin ) {
 	//Initialize MRA to 0
 	*obj->MRA = 0;
 	*obj->MRB = 0;
-	LPC_PWM1->LER |= ( 1 << ( obj->pwm - 1 ) ) | ( 1 << ( obj->pwm ) );
 
 	// default to 20ms: standard for servos, and fine for e.g. brightness control
 	pwmdoubleout_period_ms( obj, 20 );
-	pwmdoubleout_dephase( obj, 0.0f );
+	// pwmdoubleout_dephase( obj, 0.0f );
 	pwmdoubleout_write    ( obj, 0 );
 
 	// Wire pinout
