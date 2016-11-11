@@ -46,7 +46,7 @@
 
 #define SBIT_PWM_DE_4 4
 
-PwmOut led1 ( p26 );
+// PwmOut led1 ( p26 );
 PwmDoubleOut led2 ( p23 );
 DigitalIn dutyinc( p21 );
 DigitalIn dutydec( p22 );
@@ -68,7 +68,7 @@ int main() {
 	led2.dephase( dephase );
 	led2.write( dutyCycle );
 	// led1.period_us( 1 );
-	led1.write( dutyCycle );
+	// led1.write( dutyCycle );
 
 	while ( 1 ) {
 		if ( dutyinc.read() == 0 ) {

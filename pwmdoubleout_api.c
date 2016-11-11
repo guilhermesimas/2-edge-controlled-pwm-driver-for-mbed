@@ -66,8 +66,9 @@ void pwmdoubleout_init( pwmdoubleout_t* obj, PinName pin ) {
 	// ensure the power is on
 	LPC_SC->PCONP |= 1 << 6;
 
-	// ensure clock to /4
-	LPC_SC->PCLKSEL0 &= ~( 0x3 << 12 );   // pclk = /4
+	// ensure clock to /1
+	LPC_SC->PCLKSEL0 &= ~( 0x3 << 12 );   // mask
+	LPC_SC->PCLKSEL0 |= ( 0x1 << 12 ); //pclk = /1
 	LPC_PWM1->PR = 0;                     // no pre-scale
 
 
@@ -77,7 +78,7 @@ void pwmdoubleout_init( pwmdoubleout_t* obj, PinName pin ) {
 	// set double edge mode
 	LPC_PWM1->PCR |=  1 << ( 8 + pwm ) | ( 1 << ( pwm ) ) ;
 
-	pwm_clock_mhz = SystemCoreClock / 4000000;
+	pwm_clock_mhz = SystemCoreClock / 1000000;
 
 	//Initialize MRA to 0
 	*obj->MRA = 0;
