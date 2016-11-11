@@ -75,16 +75,14 @@ void pwmdoubleout_init( pwmdoubleout_t* obj, PinName pin ) {
 
 	// enable the specific PWM output
 	// set double edge mode
-	LPC_PWM1->PCR |=  1 << ( 8 + pwm );
-	LPC_PWM1->PCR |=  1 << ( pwm );
+	LPC_PWM1->PCR |=  1 << ( 8 + pwm ) | ( 1 << ( pwm ) ) ;
 
 	pwm_clock_mhz = SystemCoreClock / 4000000;
 
 	//Initialize MRA to 0
 	*obj->MRA = 0;
 	*obj->MRB = 0;
-	LPC_PWM1->LER |= ( 1 << ( obj->pwm - 1 ) );
-	LPC_PWM1->LER |= ( 1 << ( obj->pwm ) );
+	LPC_PWM1->LER |= ( 1 << ( obj->pwm - 1 ) ) | ( 1 << ( obj->pwm ) );
 
 	// default to 20ms: standard for servos, and fine for e.g. brightness control
 	pwmdoubleout_period_ms( obj, 20 );
@@ -107,9 +105,9 @@ void pwmdoubleout_dephase      ( pwmdoubleout_t* obj, float percent ) {
 	}
 	//for debuggig purposes
 	// *obj->MRA = 0;
-	// uint32_t mra = *obj->MRA;
-	// uint32_t mrb = *obj->MRB;
-	// uint32_t mr0 = LPC_PWM1->MR0;
+	uint32_t mra = *obj->MRA;
+	uint32_t mrb = *obj->MRB;
+	uint32_t mr0 = LPC_PWM1->MR0;
 
 	// set channel match to percentage
 	uint32_t v = ( uint32_t )( ( float )( LPC_PWM1->MR0 ) * percent );
@@ -130,8 +128,7 @@ void pwmdoubleout_dephase      ( pwmdoubleout_t* obj, float percent ) {
 	}
 
 	// accept on next period start
-	LPC_PWM1->LER |= ( 1 << obj->pwm );
-	LPC_PWM1->LER |= ( 1 << ( obj->pwm - 1 ) );
+	LPC_PWM1->LER |= ( 1 << obj->pwm ) | ( 1 << ( obj->pwm - 1 ) );
 }
 
 void pwmdoubleout_write( pwmdoubleout_t* obj, float value ) {
