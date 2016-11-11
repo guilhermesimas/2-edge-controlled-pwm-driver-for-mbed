@@ -74,31 +74,33 @@ int main() {
 		if ( dutyinc.read() == 0 ) {
 			dutyCycle += 0.01f;
 			wait( 0.1f );
-			// led2.write( dutyCycle );
+			led2.write( dutyCycle );
 			lcd.cls();
 			// lcd.printf( "DutyCycle:<%.1f>", 100 * led2.read() );
 			wait( .1f );
 		}
 		if ( dutydec.read() == 0 ) {
 			dutyCycle -= 0.01f;
-			// led2.write( dutyCycle );
+			led2.write( dutyCycle );
 			lcd.cls();
 			// lcd.printf( "DutyCycle:<%.1f>", 100 * led2.read() );
 			wait( .1f );
 		}
 		if ( dephinc.read() == 0 ) {
 			dephase += 0.1f;
-			// led2.dephase( dephase );
+			led2.dephase( dephase );
 			// led2.write( dutyCycle );
 			// led1.write(  );
 			// led2.write( dephaseIn.read() );
+			wait( .1f );
 		}
 		if ( dephdec.read() == 0 ) {
 			dephase -= 0.1f;
-			// led2.dephase( dephase );
+			led2.dephase( dephase );
 			// led2.write( dutyCycle );
 			// led1.write(  );
 			// led2.write( dephaseIn.read() );
+			wait( .1f );
 		}
 	}
 }

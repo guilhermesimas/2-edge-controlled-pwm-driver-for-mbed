@@ -125,7 +125,12 @@ void pwmdoubleout_dephase      ( pwmdoubleout_t* obj, float percent ) {
 	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
 		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
 	}
-
+	if ( *obj->MRA >= LPC_PWM1->MR0 ) {
+		*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
+	}
+	//debugging purposes
+	mra = *obj->MRA;
+	mrb = *obj->MRB;
 	// accept on next period start
 	LPC_PWM1->LER |= ( 1 << obj->pwm ) | ( 1 << ( obj->pwm - 1 ) );
 }
@@ -156,7 +161,8 @@ void pwmdoubleout_write( pwmdoubleout_t* obj, float value ) {
 }
 
 float pwmdoubleout_read( pwmdoubleout_t* obj ) {
-	float v = ( float )( *obj->MRB - *obj->MRA ) / ( float )( LPC_PWM1->MR0 );
+	float v = ( float )( ( int )( *obj->MRB ) - ( int )( *obj->MRA ) ) / ( float )(
+	              LPC_PWM1->MR0 );
 	//workaround for MRB < MRA
 	if ( v < 0 ) {
 		v = v + 1.0f;
