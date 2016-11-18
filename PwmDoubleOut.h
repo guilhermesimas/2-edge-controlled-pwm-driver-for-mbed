@@ -29,7 +29,7 @@ namespace mbed {
  * @code
  * // Fade a led on.
  * #include "mbed.h"
- *
+ *su
  * PwmOut led(LED1);
  *
  * int main() {

@@ -46,61 +46,85 @@
 
 #define SBIT_PWM_DE_4 4
 
-// PwmOut led1 ( p26 );
+#define PERIOD_INC 1
+#define DUTY_CYCLE_INC 0.01
+#define DEPHASE_INC 0.01
+
 PwmDoubleOut led2 ( p23 );
-DigitalIn dutyinc( p21 );
-DigitalIn dutydec( p22 );
-DigitalIn dephinc( p13 );
-DigitalIn dephdec( p14 );
+InterruptIn knob( p13 );
+PwmOut led1 ( p26 );
+DigitalIn modeinc( p21 );
+DigitalIn modedec( p22 );
+// DigitalIn dephinc( p13 );
+DigitalIn decoderIn( p14 );
 TextLCD lcd( p15, p16, p17, p18, p19, p20 );
 
+int periodUs = 1;
+float dutyCycleA = 0.5f;
+float dutyCycleB = 0.5f;
+float dephase = 0.25f;
+/*
+ * Flag to select what the interrupt should do
+ */
+
+char flag = 0;
+
+void trigger() {
+	int decoderMultiplier = 1;
+	if ( decoderIn.read() == 0 ) {
+		decoderMultiplier = -1;
+	}
+	switch ( flag ) {
+	case 0:
+		//Freq
+		periodUs += PERIOD_INC * decoderMultiplier;
+		led2.period_us( periodUs );
+		break;
+	case 1:
+		//DutyCycleA
+		dutyCycleA += DUTY_CYCLE_INC * decoderMultiplier;
+		led1.write( dutyCycleA );
+		break;
+	case 2:
+		//DutyCycleB
+		dutyCycleB += DUTY_CYCLE_INC * decoderMultiplier;
+		led2.write( dutyCycleB );
+		break;
+	case 3:
+		//dephase
+		dephase += DEPHASE_INC * decoderMultiplier;
+		led2.dephase( dephase );
+		break;
+	}
+}
 
 int main() {
 
-	float dutyCycle = 0.5f;
-	float dephase = 0.25f;
-	dutyinc.mode( PullUp );
-	dutydec.mode( PullUp );
-	dephinc.mode( PullUp );
-	dephdec.mode( PullUp );
+	// dutyinc.mode( PullUp );
+	// dutydec.mode( PullUp );
+	modeinc.mode( PullUp );
+	modedec.mode( PullUp );
 
-	led2.period_us( 1 );
+	led1.period_us( periodUs );
+	led1.write( dutyCycleA );
+	led2.write( dutyCycleB );
 	led2.dephase( dephase );
-	led2.write( dutyCycle );
-	// led1.period_us( 1 );
-	// led1.write( dutyCycle );
+
+	knob.rise( &trigger );
+
 
 	while ( 1 ) {
-		if ( dutyinc.read() == 0 ) {
-			dutyCycle += 0.01f;
-			wait( 0.1f );
-			led2.write( dutyCycle );
+		if ( modeinc.read() == 0 ) {
+			flag = ( flag + 1 ) % 4;
 			lcd.cls();
-			// lcd.printf( "DutyCycle:<%.1f>", 100 * led2.read() );
-			wait( .1f );
+			lcd.printf( "Mode <%d>", flag );
+			wait( .5f );
 		}
-		if ( dutydec.read() == 0 ) {
-			dutyCycle -= 0.01f;
-			led2.write( dutyCycle );
+		if ( modedec.read() == 0 ) {
+			flag = ( flag - 1 ) % 4;
 			lcd.cls();
-			// lcd.printf( "DutyCycle:<%.1f>", 100 * led2.read() );
-			wait( .1f );
-		}
-		if ( dephinc.read() == 0 ) {
-			dephase += 0.1f;
-			led2.dephase( dephase );
-			// led2.write( dutyCycle );
-			// led1.write(  );
-			// led2.write( dephaseIn.read() );
-			wait( .1f );
-		}
-		if ( dephdec.read() == 0 ) {
-			dephase -= 0.1f;
-			led2.dephase( dephase );
-			// led2.write( dutyCycle );
-			// led1.write(  );
-			// led2.write( dephaseIn.read() );
-			wait( .1f );
+			lcd.printf( "Mode <%d>", flag );
+			wait( .5f );
 		}
 	}
 }
