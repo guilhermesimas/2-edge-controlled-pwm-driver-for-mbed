@@ -50,6 +50,22 @@
 #define DUTY_CYCLE_INC 0.01
 #define DEPHASE_INC 0.01
 
+#define TRUE 1
+#define FALSE 0
+
+#define DA_ROW 0
+#define DA_COL 4
+
+#define DB_ROW 1
+#define DB_COL 4
+
+#define F_ROW 0
+#define F_COL 4
+
+#define P_ROW 0
+#define P_COL 4
+
+
 PwmDoubleOut led2 ( p23 );
 InterruptIn knob( p13 );
 PwmOut led1 ( p26 );
@@ -57,9 +73,9 @@ DigitalIn modeinc( p21 );
 DigitalIn modedec( p22 );
 // DigitalIn dephinc( p13 );
 DigitalIn decoderIn( p14 );
-TextLCD lcd( p15, p16, p17, p18, p19, p20 );
+TextLCD lcd( p15, p16, p17, p18, p19, p20 , TextLCD::LCD20x4 );
 
-int periodUs = 1;
+int periodUs = 2;
 float dutyCycleA = 0.5f;
 float dutyCycleB = 0.5f;
 float dephase = 0.25f;
@@ -68,6 +84,20 @@ float dephase = 0.25f;
  */
 
 char flag = 0;
+
+/*
+Cursor control
+*/
+int row = DA_ROW;
+int col = DA_COL;
+/*
+Value control
+*/
+float dcInc = 10;
+float dpInc = 10;
+
+
+
 
 void trigger() {
 	int decoderMultiplier = 1;
@@ -111,7 +141,13 @@ int main() {
 	led2.dephase( dephase );
 
 	knob.rise( &trigger );
-
+	// lcd.cls();
+	// lcd.printf( "Duty cycle A:\n<%03.1f>%%\n", dutyCycleA * 100 );
+	lcd.printf( "dA:<%03.1f>%%\ndB:<%03.1f>%%", dutyCycleA * 100,
+	            dutyCycleB * 100 );
+	// lcd.locate( 0, 0 );
+	lcd.setCursor( TRUE );
+	lcd.locate( 0, 0 );
 
 	while ( 1 ) {
 		if ( modeinc.read() == 0 ) {
