@@ -179,6 +179,29 @@ void pwmdoubleout_period_ms( pwmdoubleout_t* obj, int ms ) {
 	pwmdoubleout_period_us( obj, ms * 1000 );
 }
 
+void pwmdoubleout_freq_khz ( pwmdoubleout_t* obj, int khz ) {
+	uint32_t ticks = ( pwm_clock_mhz * 1000 ) / ( uint32_t )khz;
+
+	// set reset
+	LPC_PWM1->TCR = TCR_RESET;
+
+	// set the global match register
+	LPC_PWM1->MR0 = ticks;
+
+	// Scale the pulse width to preserve the duty ratio
+	if ( LPC_PWM1->MR0 > 0 ) {
+		*obj->MRA = ( *obj->MRA * ticks ) / LPC_PWM1->MR0;
+		*obj->MRB = ( *obj->MRB * ticks ) / LPC_PWM1->MR0;
+	}
+
+	// set the channel latch to update value at next period start
+	// LPC_PWM1->LER |= ( 1 << 0 ) | ( 1 << ( obj->pwm - 1 ) ) | ( 1 << obj->pwm );
+	LPC_PWM1->LER |=  1 << 0  ;
+
+	// enable counter and pwm, clear reset
+	LPC_PWM1->TCR = TCR_CNT_EN | TCR_PWM_EN;
+}
+
 // Set the PWM period, keeping the duty cycle the same.
 void pwmdoubleout_period_us( pwmdoubleout_t* obj, int us ) {
 	// calculate number of ticks

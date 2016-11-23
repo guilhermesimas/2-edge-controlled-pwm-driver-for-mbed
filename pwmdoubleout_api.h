@@ -38,6 +38,8 @@ void pwmdoubleout_period       ( pwmdoubleout_t* obj, float seconds );
 void pwmdoubleout_period_ms    ( pwmdoubleout_t* obj, int ms );
 void pwmdoubleout_period_us    ( pwmdoubleout_t* obj, int us );
 
+void pwmdoubleout_freq_khz     ( pwmdoubleout_t* obj, int khz );
+
 void pwmdoubleout_pulsewidth   ( pwmdoubleout_t* obj, float seconds );
 void pwmdoubleout_pulsewidth_ms( pwmdoubleout_t* obj, int ms );
 void pwmdoubleout_pulsewidth_us( pwmdoubleout_t* obj, int us );

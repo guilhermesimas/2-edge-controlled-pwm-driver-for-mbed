@@ -119,6 +119,11 @@ public:
 	void period_us( int us ) {
 		pwmdoubleout_period_us( &_pwm, us );
 	}
+	/** Set the PWM frequency, specified in khz (int), keeping the duty cycle the same.
+	 */
+	void freq_khz( int khz ) {
+		pwmdoubleout_freq_khz( &_pwm, khz );
+	}
 
 	/** Set the PWM pulsewidth, specified in seconds (float), keeping the period the same.
 	 */
