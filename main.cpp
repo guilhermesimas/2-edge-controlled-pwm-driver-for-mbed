@@ -68,7 +68,7 @@
 
 PwmDoubleOut led2 ( p23 );
 InterruptIn knob( p13 );
-// PwmOut led1 ( p26 );
+PwmOut led1 ( p26 );
 DigitalIn modeinc( p21 );
 DigitalIn modedec( p22 );
 // DigitalIn dephinc( p13 );
@@ -113,7 +113,7 @@ void trigger() {
 	case 1:
 		//DutyCycleA
 		dutyCycleA += DUTY_CYCLE_INC * decoderMultiplier;
-		// led1.write( dutyCycleA );
+		led1.write( dutyCycleA );
 		break;
 	case 2:
 		//DutyCycleB
@@ -136,7 +136,7 @@ int main() {
 	modedec.mode( PullUp );
 
 	led2.freq_khz( 1000 );
-	// led1.write( dutyCycleA );
+	led1.write( dutyCycleA );
 	led2.write( dutyCycleB );
 	led2.dephase( dephase );
 
