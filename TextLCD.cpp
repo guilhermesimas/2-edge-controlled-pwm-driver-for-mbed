@@ -90,7 +90,7 @@ void TextLCD::insert( int c ) {
 	int row = _row;
 	int column = _column;
 	_putc( c );
-	moveCursor( column, row );
+	moveCursor( column, row ); //move cursor back to original position
 }
 
 int TextLCD::_getc() {
