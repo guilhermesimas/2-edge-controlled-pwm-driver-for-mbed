@@ -5,10 +5,22 @@
 #include "PwmDoubleOut.h"
 #include <atomic>
 
+/*
+ * Duty Cycle will be stored in int and will only be evaluated as float when necessary.
+ * This facilitates atomic operation and speeds up the process
+ */
+static constexpr auto DUTY_CYCLE_PRECISION = 1000;
+static constexpr auto DEPHASE_PRECISION = 1000;
+static constexpr auto DUTY_CYCLE_MULT = 1.0f / DUTY_CYCLE_PRECISION;
+static constexpr auto DEPHASE_MULT = 1.0f / DEPHASE_PRECISION;
 
-#define FREQ_INC 1
-#define DUTY_CYCLE_INC 0.01
-#define DEPHASE_INC 0.01
+static constexpr auto FREQ_INIT = 1000;
+static constexpr auto DUTY_CYCLE_INIT = DUTY_CYCLE_PRECISION / 2; //50%
+static constexpr auto DEPHASE_INIT = DEPHASE_PRECISION / 4; //25%
+
+static constexpr auto FREQ_INC = 1;
+static constexpr auto DUTY_CYCLE_INC = 1;
+static constexpr auto DEPHASE_INC = 1;
 
 #define TRUE 1
 #define FALSE 0
@@ -36,10 +48,10 @@ DigitalIn modedec( p22 );
 DigitalIn decoderIn( p14 );
 TextLCD lcd( p15, p16, p17, p18, p19, p20 , TextLCD::LCD20x4 );
 
-std::atomic<uint32_t> freqKhz = 1000;
-std::atomic<float> dutyCycleA = 0.5f;
-std::atomic<float> dutyCycleB = 0.5f;
-std::atomic<float> dephase = 0.25f;
+std::atomic<uint32_t> freqKhz;
+std::atomic<uint32_t> dutyCycleA;
+std::atomic<uint32_t> dutyCycleB;
+std::atomic<uint32_t> dephase;
 /*
  * Flag to select what the interrupt should do
  */
@@ -51,11 +63,6 @@ Cursor control
 */
 int row = DA_ROW;
 int col = DA_COL;
-/*
-Value control
-*/
-float dcInc = 10;
-float dpInc = 10;
 
 
 
@@ -76,19 +83,19 @@ void trigger() {
 		//DutyCycleA
 		// dutyCycleA += DUTY_CYCLE_INC * decoderMultiplier;
 		dutyCycleA.fetch_add( DUTY_CYCLE_INC * decoderMultiplier );
-		waveA.write( dutyCycleA.load() );
+		waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
 		break;
 	case 2:
 		//DutyCycleB
 		// dutyCycleB += DUTY_CYCLE_INC * decoderMultiplier;
 		dutyCycleB.fetch_add( DUTY_CYCLE_INC * decoderMultiplier );
-		waveB.write( dutyCycleB.load() );
+		waveB.write( dutyCycleB.load() * DUTY_CYCLE_MULT );
 		break;
 	case 3:
 		//dephase
 		// dephase += DEPHASE_INC * decoderMultiplier;
 		dephase.fetch_add( DUTY_CYCLE_INC * decoderMultiplier );
-		waveB.dephase( dephase.load() );
+		waveB.dephase( dephase.load() *DEPHASE_MULT );
 		break;
 	}
 }
@@ -100,17 +107,24 @@ int main() {
 	modeinc.mode( PullUp );
 	modedec.mode( PullUp );
 
+	freqKhz.store( FREQ_INIT );
+	dutyCycleA.store( DUTY_CYCLE_INIT );
+	dutyCycleB.store( DUTY_CYCLE_INIT );
+	dephase.store( DEPHASE_INIT );
+
 	waveB.freq_khz( freqKhz.load() );
-	waveA.write( dutyCycleA.load() );
-	waveB.write( dutyCycleB.load() );
-	waveB.dephase( dephase.load() );
+	waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
+	waveB.write( dutyCycleB.load() * DUTY_CYCLE_MULT );
+	waveB.dephase( dephase.load() * DEPHASE_MULT );
 
 	knob.rise( &trigger );
 	// lcd.cls();
 	// lcd.printf( "Duty cycle A:\n<%03.1f>%%\n", dutyCycleA * 100 );
-	lcd.printf( "dA:<%03.1f>%%\ndB:<%03.1f>%%", dutyCycleA.load() * 100,
-	            dutyCycleB.load() * 100 );
-	lcd.printf( "\nPh:<%03.1f>%%\nFq:<%4d>KHz", dephase.load(), freqKhz.load() );
+	lcd.printf( "dA:<%03.1f>%%\ndB:<%03.1f>%%",
+	            dutyCycleA.load() * DUTY_CYCLE_MULT * 100 ,
+	            dutyCycleB.load() * DUTY_CYCLE_MULT * 100 );
+	lcd.printf( "\nPh:<%03.1f>%%\nFq:<%4d>KHz", dephase.load()*DEPHASE_MULT * 100,
+	            freqKhz.load() );
 	// lcd.locate( 0, 0 );
 	lcd.setCursor( TRUE );
 	lcd.locate( 0, 0 );
