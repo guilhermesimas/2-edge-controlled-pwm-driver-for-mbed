@@ -88,6 +88,10 @@ public:
 
 	void setCursor( int value );
 
+	void moveCursor( int column, int row );
+
+	void insert ( int c );
+
 	int rows();
 	int columns();
 

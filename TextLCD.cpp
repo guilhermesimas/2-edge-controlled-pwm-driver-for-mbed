@@ -86,6 +86,13 @@ int TextLCD::_putc( int value ) {
 	return value;
 }
 
+void TextLCD::insert( int c ) {
+	int row = _row;
+	int column = _column;
+	_putc( c );
+	moveCursor( column, row );
+}
+
 int TextLCD::_getc() {
 	return -1;
 }
@@ -93,6 +100,12 @@ int TextLCD::_getc() {
 void TextLCD::setCursor( int value ) {
 	writeCommand( 0xC | ( 0x3 * value ) );
 	wait( 0.000040f ); // most instructions take 40us
+}
+
+void TextLCD::moveCursor( int column, int row ) {
+	locate( column, row );
+	int a = address( column, row );
+	writeCommand( a );
 }
 
 void TextLCD::writeByte( int value ) {
@@ -163,3 +176,4 @@ int TextLCD::rows() {
 		return 2;
 	}
 }
+

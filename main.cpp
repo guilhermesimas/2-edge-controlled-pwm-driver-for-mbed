@@ -1,8 +1,14 @@
 #include "mbed.h"
 #include "test_env.h"
 #include "rtos.h"
+/*
+ * Auxiliary implemented libraries
+ */
 #include "TextLCD.h"
 #include "PwmDoubleOut.h"
+/*
+ * C++ lib for atomic operations
+ */
 #include <atomic>
 
 /*
@@ -120,30 +126,23 @@ int main() {
 	knob.rise( &trigger );
 	// lcd.cls();
 	// lcd.printf( "Duty cycle A:\n<%03.1f>%%\n", dutyCycleA * 100 );
-	lcd.printf( "dA:<%03.1f>%%\ndB:<%03.1f>%%",
+	lcd.printf( "dA:<%04.1f>%%\ndB:<%04.1f>%%",
 	            dutyCycleA.load() * DUTY_CYCLE_MULT * 100 ,
 	            dutyCycleB.load() * DUTY_CYCLE_MULT * 100 );
-	lcd.printf( "\nPh:<%03.1f>%%\nFq:<%4d>KHz", dephase.load()*DEPHASE_MULT * 100,
+	lcd.printf( "\nPh:<%04.1f>%%\nFq:<%4d>KHz", dephase.load()*DEPHASE_MULT * 100,
 	            freqKhz.load() );
 	// lcd.locate( 0, 0 );
 	lcd.setCursor( TRUE );
-	lcd.locate( 0, 0 );
-	lcd.locate( 1, 1 );
-
 
 	while ( 1 ) {
 		if ( modeinc.read() == 0 ) {
 			uint8_t temp = flag.load();
 			flag.store( ( temp + 1 ) % 4 );
-			lcd.cls();
-			// lcd.printf( "Mode <%d>", flag );
 			wait( .5f );
 		}
 		if ( modedec.read() == 0 ) {
 			uint8_t temp = flag.load();
 			flag.store( ( temp - 1 ) % 4 );
-			lcd.cls();
-			// lcd.printf( "Mode <%d>", flag );
 			wait( .5f );
 		}
 	}
