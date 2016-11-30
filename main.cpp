@@ -24,10 +24,20 @@ static constexpr auto DEPHASE_MULT = 1.0f / DEPHASE_PRECISION;
  * Initial value that will be loaded to each parameter
  */
 
-static constexpr auto FREQ_INIT = 1000; // 1MHz
+static constexpr auto FREQ_INIT = 500; // 1MHz
 static constexpr auto DUTY_CYCLE_INIT = DUTY_CYCLE_PRECISION / 2; //50%
 static constexpr auto DEPHASE_INIT = DEPHASE_PRECISION / 4; //25%
 
+/*
+ * Limits for values
+ */
+static constexpr auto FREQ_MAX = 1000;
+static constexpr auto DUTY_CYCLE_MAX = 1000;
+static constexpr auto DEPHASE_MAX = 1000;
+
+static constexpr auto FREQ_MIN = 0;
+static constexpr auto DUTY_CYCLE_MIN = 0;
+static constexpr auto DEPHASE_MIN = 0;
 
 /*
  * Limits for cursor
@@ -101,26 +111,57 @@ void trigger() {
 	switch ( row.load() ) {
 	case 0:	{
 		//DutyCycleA
-		dutyCycleA.fetch_add( DA_INC.load() * decoderMultiplier );
-		waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
+		int32_t dA = dutyCycleA.load();
+		dA += DA_INC.load() * decoderMultiplier;
+		if ( dA > FREQ_MAX ) {
+			dA = FREQ_MAX;
+		} else if ( dA < FREQ_MIN ) {
+			dA = FREQ_MIN;
+		}
+		dutyCycleA.store( dA );
+		waveA.write( dA * DUTY_CYCLE_MULT );
 		break;
 	}
 	case 1:	{
 		//DutyCycleB
-		dutyCycleB.fetch_add( DB_INC.load() * decoderMultiplier );
-		waveB.write( dutyCycleB.load() * DUTY_CYCLE_MULT );
+		int32_t dB = dutyCycleB.load();
+		dB += DB_INC.load() * decoderMultiplier;
+		if ( dB > DUTY_CYCLE_MAX ) {
+			dB = DUTY_CYCLE_MAX;
+		} else if ( dB < DUTY_CYCLE_MIN ) {
+			dB = DUTY_CYCLE_MIN;
+		}
+		dutyCycleB.store( dB );
+		waveB.write( dB * DUTY_CYCLE_MULT );
 		break;
 	}
 	case 2:	{
 		//dephase
-		dephase.fetch_add( PH_INC.load() * decoderMultiplier );
-		waveB.dephase( dephase.load() *DEPHASE_MULT );
+		int32_t ph = dephase.load();
+		ph += PH_INC.load() * decoderMultiplier;
+		if ( ph > DEPHASE_MAX ) {
+			ph = DEPHASE_MAX;
+		} else if ( ph < DEPHASE_MIN ) {
+			ph = DEPHASE_MIN;
+		}
+		dephase.store( ph );
+		waveB.dephase( ph * DEPHASE_MULT );
 		break;
 	}
 	case 3:	{
 		//Freq
-		freqKhz.fetch_add( FQ_INC.load() * decoderMultiplier );
-		waveB.freq_khz( freqKhz.load() );
+		int32_t fq = freqKhz.load();
+		fq += FQ_INC.load() * decoderMultiplier;
+		if ( fq > FREQ_MAX ) {
+			fq = FREQ_MAX;
+		} else if ( fq < FREQ_MIN ) {
+			fq = FREQ_MIN;
+		}
+		freqKhz.store( fq );
+		waveB.freq_khz( fq );
+		//rewrite dutyCycles to maintain consistency
+		waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
+		waveB.write( dutyCycleB.load() *DUTY_CYCLE_MULT );
 		break;
 	}
 	}
