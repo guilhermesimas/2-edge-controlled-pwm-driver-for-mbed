@@ -150,8 +150,9 @@ void pwmdoubleout_write( pwmdoubleout_t* obj, float value ) {
 	if ( v == LPC_PWM1->MR0 ) {
 		v++;
 	}
-
-	*obj->MRB = *obj->MRA + v;
+	uint32_t mrb = *obj->MRA + v;
+	*obj->MRB = mrb;
+	// *obj->MRB = *obj->MRA + v;
 	//wraparound
 	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
 		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
