@@ -135,6 +135,31 @@ void pwmdoubleout_dephase      ( pwmdoubleout_t* obj, float percent ) {
 	// accept on next period start
 	LPC_PWM1->LER |= ( 1 << obj->pwm ) | ( 1 << ( obj->pwm - 1 ) );
 }
+void pwmdoubleout_set_dephase      ( pwmdoubleout_t* obj, int reg_value ) {
+
+	// workaround for PWM1[1] - Never make it equal MR0, else we get 1 cycle dropout
+	if ( reg_value == LPC_PWM1->MR0 ) {
+		reg_value++;
+	}
+	// get duty cycle to preserve it
+	int diff = reg_value - *obj->MRA;
+	*obj->MRA = reg_value;
+
+
+	*obj->MRB = *obj->MRB + diff;
+	//wraparound
+	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
+		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
+	}
+	if ( *obj->MRA >= LPC_PWM1->MR0 ) {
+		*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
+	}
+	//debugging purposes
+	mra = *obj->MRA;
+	mrb = *obj->MRB;
+	// accept on next period start
+	LPC_PWM1->LER |= ( 1 << obj->pwm ) | ( 1 << ( obj->pwm - 1 ) );
+}
 
 void pwmdoubleout_write( pwmdoubleout_t* obj, float value ) {
 	if ( value < 0.0f ) {
@@ -153,6 +178,23 @@ void pwmdoubleout_write( pwmdoubleout_t* obj, float value ) {
 	uint32_t mrb = *obj->MRA + v;
 	*obj->MRB = mrb;
 	// *obj->MRB = *obj->MRA + v;
+	//wraparound
+	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
+		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
+	}
+
+	// accept on next period start
+	LPC_PWM1->LER |= 1 << obj->pwm;
+}
+void pwmdoubleout_set_duty_cycle( pwmdoubleout_t* obj, int reg_value ) {
+
+	// workaround for PWM1[1] - Never make it equal MR0, else we get 1 cycle dropout
+	if ( reg_value == LPC_PWM1->MR0 ) {
+		reg_value++;
+	}
+	uint32_t mrb = *obj->MRA + reg_value;
+	*obj->MRB = mrb;
+	// *obj->MRB = *obj->MRA + reg_value;
 	//wraparound
 	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
 		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
@@ -194,6 +236,20 @@ void pwmdoubleout_freq_khz ( pwmdoubleout_t* obj, int khz ) {
 		*obj->MRA = ( *obj->MRA * ticks ) / LPC_PWM1->MR0;
 		*obj->MRB = ( *obj->MRB * ticks ) / LPC_PWM1->MR0;
 	}
+
+	// set the channel latch to update value at next period start
+	// LPC_PWM1->LER |= ( 1 << 0 ) | ( 1 << ( obj->pwm - 1 ) ) | ( 1 << obj->pwm );
+	LPC_PWM1->LER |=  1 << 0  ;
+
+	// enable counter and pwm, clear reset
+	LPC_PWM1->TCR = TCR_CNT_EN | TCR_PWM_EN;
+}
+void pwmdoubleout_set_freq ( pwmdoubleout_t* obj, int reg_value ) {
+	// set reset
+	LPC_PWM1->TCR = TCR_RESET;
+
+	// set the global match register
+	LPC_PWM1->MR0 = reg_value;
 
 	// set the channel latch to update value at next period start
 	// LPC_PWM1->LER |= ( 1 << 0 ) | ( 1 << ( obj->pwm - 1 ) ) | ( 1 << obj->pwm );

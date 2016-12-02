@@ -44,6 +44,10 @@ void pwmdoubleout_pulsewidth   ( pwmdoubleout_t* obj, float seconds );
 void pwmdoubleout_pulsewidth_ms( pwmdoubleout_t* obj, int ms );
 void pwmdoubleout_pulsewidth_us( pwmdoubleout_t* obj, int us );
 
+void pwmdoubleout_set_freq ( pwmdoubleout_t* obj, int reg_value );
+void pwmdoubleout_set_duty_cycle ( pwmdoubleout_t* obj, int reg_value );
+void pwmdoubleout_set_dephase ( pwmdoubleout_t* obj, int reg_value );
+
 #ifdef __cplusplus
 }
 #endif

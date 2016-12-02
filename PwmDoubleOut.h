@@ -72,8 +72,18 @@ public:
 	void dephase( float value ) {
 		pwmdoubleout_dephase( &_pwm, value );
 	}
+	/** Set the ouput dephase, specified as a percentage (float)
+	 *
+	 *  @param value A floating-point value representing the output dephase,
+	 *    specified as a percentage. The value should lie between
+	 *    0.0f (representing no dephase) and 1.0f (representing one full cycle dephase).
+	 *    Values outside this range will be saturated to 0.0f or 1.0f.
+	 */
+	void set_dephase( int value ) {
+		pwmdoubleout_set_dephase( &_pwm, value );
+	}
 
-	/** Set the ouput duty-cycle, specified as a percentage (float)
+	/** Set the ouput duty-cycle, specified as the register value (int)
 	 *
 	 *  @param value A floating-point value representing the output duty-cycle,
 	 *    specified as a percentage. The value should lie between
@@ -82,6 +92,16 @@ public:
 	 */
 	void write( float value ) {
 		pwmdoubleout_write( &_pwm, value );
+	}
+	/** Set the ouput duty-cycle, specified as a percentage (float)
+		 *
+		 *  @param value A floating-point value representing the output duty-cycle,
+		 *    specified as a percentage. The value should lie between
+		 *    0.0f (representing on 0%) and 1.0f (representing on 100%).
+		 *    Values outside this range will be saturated to 0.0f or 1.0f.
+		 */
+	void set_duty_cycle( int value ) {
+		pwmdoubleout_set_duty_cycle( &_pwm, value );
 	}
 
 	/** Return the current output duty-cycle setting, measured as a percentage (float)
@@ -123,6 +143,11 @@ public:
 	 */
 	void freq_khz( int khz ) {
 		pwmdoubleout_freq_khz( &_pwm, khz );
+	}
+	/** Set the PWM frequency, specified in khz (int), keeping the duty cycle the same.
+	 */
+	void set_freq( int value ) {
+		pwmdoubleout_set_freq( &_pwm, khz );
 	}
 
 	/** Set the PWM pulsewidth, specified in seconds (float), keeping the period the same.
