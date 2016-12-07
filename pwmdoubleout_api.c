@@ -138,10 +138,9 @@ void pwmdoubleout_dephase      ( pwmdoubleout_t* obj, float percent ) {
 void pwmdoubleout_set_dephase      ( pwmdoubleout_t* obj, int reg_value ) {
 
 	// workaround for PWM1[1] - Never make it equal MR0, else we get 1 cycle dropout
-	if ( reg_value == LPC_PWM1->MR0 ) {
-		reg_value++;
-	}
-	// get duty cycle to preserve it
+	// if ( reg_value == LPC_PWM1->MR0 ) {
+	// 	reg_value++;
+	// }
 	int diff = reg_value - *obj->MRA;
 	*obj->MRA = reg_value;
 
@@ -190,7 +189,10 @@ void pwmdoubleout_set_duty_cycle( pwmdoubleout_t* obj, int reg_value ) {
 
 	// workaround for PWM1[1] - Never make it equal MR0, else we get 1 cycle dropout
 	if ( reg_value == LPC_PWM1->MR0 ) {
-		reg_value++;
+		*obj->MRB = reg_value + 1;
+		LPC_PWM1->LER |= 1 << obj->pwm;
+		return;
+
 	}
 	uint32_t mrb = *obj->MRA + reg_value;
 	*obj->MRB = mrb;
