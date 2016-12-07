@@ -159,24 +159,35 @@ void trigger() {
 		freqKhz.store( fq );
 		waveB.set_freq( fq );
 		//rewrite dutyCycles to maintain consistency
-		// uint32_t dA = dutyCycleA.load();
-		// dA = dA * fq / old_fq;
-		// dutyCycleA.store( dA );
-		// uint32_t dB = dutyCycleB.load();
-		// dB = dB * fq / old_fq;
-		// dutyCycleA.store( dB );
-		// uint32_t ph = dephase.load();
-		// ph = ph * fq / old_fq;
-		// dephase.store( ph );
+		uint32_t dA = dutyCycleA.load();
+		if ( dA > fq ) {
+			dutyCycleA.store( fq );
+			waveA.set_duty_cycle( fq );
+		}
+		uint32_t ph = dephase.load();
+		if ( ph > fq ) {
+			dephase.store( fq );
+			waveB.set_dephase( fq );
+		}
+		uint32_t dB = dutyCycleB.load();
+		if ( dB > fq ) {
+			dutyCycleB.store( fq );
+			waveB.set_duty_cycle( fq );
 
-		// waveA.set_duty_cycle( dA );
-		// waveB.set_dephase( ph );
-		// waveB.set_duty_cycle( dB );
+		}
 		break;
 	}
 	}
 	flagModified.store( TRUE );
-	wait( 0.1f );
+	wait( 0.05f );
+	while ( knob.read() != 0 );
+	wait( 0.05f );
+}
+
+void debounce( DigitalIn in ) {
+	wait( 0.01f );
+	while ( in.read() == 0 );
+	wait( 0.01f );
 }
 
 int main() {
@@ -230,14 +241,14 @@ int main() {
 			temp = ( temp + 1 ) % 4;
 			row.store( temp );
 			lcd.moveCursor( rowpos[temp], temp );
-			wait( .5f );
+			debounce( rowinc );
 		}
 		if ( rowdec.read() == 0 ) {
 			uint32_t temp = row.load();
 			temp = ( temp - 1 ) % 4;
 			row.store( temp );
 			lcd.moveCursor( rowpos[temp], temp );
-			wait( .5f );
+			debounce( rowdec );
 		}
 		if ( colinc.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
@@ -274,7 +285,7 @@ int main() {
 
 				}
 			}
-			wait( .5f );
+			debounce( colinc );
 		}
 		if ( coldec.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
@@ -310,7 +321,7 @@ int main() {
 
 				}
 			}
-			wait( .5f );
+			debounce( coldec );
 		}
 		if ( flagModified.load() ) {
 			lcd.cls();
