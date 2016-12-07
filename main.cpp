@@ -324,6 +324,7 @@ int main() {
 			debounce( coldec );
 		}
 		if ( flagModified.load() ) {
+			flagModified.store( FALSE );
 			lcd.cls();
 			uint32_t dA = dutyCycleA.load();
 			uint32_t dB = dutyCycleB.load();
@@ -337,7 +338,6 @@ int main() {
 			    ph , 100 * ( ( float )ph / fq ),
 			    fq , 96000 / fq );
 			lcd.moveCursor( rowpos[row.load()], row.load() );
-			flagModified.store( FALSE );
 		}
 	}
 }
