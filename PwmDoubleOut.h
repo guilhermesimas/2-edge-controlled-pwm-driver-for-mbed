@@ -147,7 +147,7 @@ public:
 	/** Set the PWM frequency, specified in khz (int), keeping the duty cycle the same.
 	 */
 	void set_freq( int value ) {
-		pwmdoubleout_set_freq( &_pwm, khz );
+		pwmdoubleout_set_freq( &_pwm, value );
 	}
 
 	/** Set the PWM pulsewidth, specified in seconds (float), keeping the period the same.

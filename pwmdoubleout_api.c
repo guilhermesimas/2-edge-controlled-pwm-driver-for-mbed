@@ -155,8 +155,8 @@ void pwmdoubleout_set_dephase      ( pwmdoubleout_t* obj, int reg_value ) {
 		*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
 	}
 	//debugging purposes
-	mra = *obj->MRA;
-	mrb = *obj->MRB;
+	uint32_t mra = *obj->MRA;
+	uint32_t mrb = *obj->MRB;
 	// accept on next period start
 	LPC_PWM1->LER |= ( 1 << obj->pwm ) | ( 1 << ( obj->pwm - 1 ) );
 }

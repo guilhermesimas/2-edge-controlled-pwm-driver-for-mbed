@@ -12,21 +12,12 @@
 #include <atomic>
 
 /*
- * Duty Cycle will be stored in int and will only be evaluated as float when necessary.
- * This facilitates atomic operation and speeds up the process
- */
-static constexpr auto DUTY_CYCLE_PRECISION = 1000;
-static constexpr auto DEPHASE_PRECISION = 1000;
-static constexpr auto DUTY_CYCLE_MULT = 1.0f / DUTY_CYCLE_PRECISION;
-static constexpr auto DEPHASE_MULT = 1.0f / DEPHASE_PRECISION;
-
-/*
  * Initial value that will be loaded to each parameter
  */
 
-static constexpr auto FREQ_INIT = 500; // 1MHz
-static constexpr auto DUTY_CYCLE_INIT = DUTY_CYCLE_PRECISION / 2; //50%
-static constexpr auto DEPHASE_INIT = DEPHASE_PRECISION / 4; //25%
+static constexpr auto FREQ_INIT = 192; // 500KHz
+static constexpr auto DUTY_CYCLE_INIT = FREQ_INIT / 2; //50%
+static constexpr auto DEPHASE_INIT = FREQ_INIT / 4; //25%
 
 /*
  * Limits for values
@@ -50,25 +41,29 @@ static constexpr auto COL_LIM = 8; // 8th column is out of bounds
  * Strings format for printf
  */
 
-#define DA_PRINT "dA:<%04.1f>%%"
-#define DB_PRINT "db:<%04.1f>%%"
-#define PH_PRINT "Ph:<%04.1f>%%"
-#define FQ_PRINT "Fq:<%04d>KHz"
+#define DA_PRINT "dA:<%04d>"
+#define DB_PRINT "dB:<%04d>"
+#define PH_PRINT "Ph:<%04d>"
+#define FQ_PRINT "Fq:<%04d>"
+#define DA_REF_PRINT "=%04.1f%%"
+#define DB_REF_PRINT "=%04.1f%%"
+#define PH_REF_PRINT "=%04.1f%%"
+#define FQ_REF_PRINT "=%04dKHz"
 
 #define TRUE 1
 #define FALSE 0
 
-InterruptIn knob( p13 );
-DigitalIn decoderIn( p14 );
+InterruptIn knob( p14 );
+DigitalIn decoderIn( p13 );
 
 PwmDoubleOut waveB ( p23 );
-PwmOut waveA ( p26 );
+PwmDoubleOut waveA ( p26 );
 
-DigitalIn rowinc( p21 );
-DigitalIn rowdec( p22 );
+DigitalIn rowinc( p12 );
+DigitalIn rowdec( p21 );
 
-DigitalIn coldec( p11 );
-DigitalIn colinc( p12 );
+DigitalIn coldec( p22 );
+DigitalIn colinc( p11 );
 
 
 
@@ -113,44 +108,48 @@ void trigger() {
 		//DutyCycleA
 		int32_t dA = dutyCycleA.load();
 		dA += DA_INC.load() * decoderMultiplier;
-		if ( dA > FREQ_MAX ) {
-			dA = FREQ_MAX;
-		} else if ( dA < FREQ_MIN ) {
-			dA = FREQ_MIN;
+		int32_t fq = freqKhz.load();
+		if ( dA > fq ) {
+			dA = fq;
+		} else if ( dA < DUTY_CYCLE_MIN ) {
+			dA = DUTY_CYCLE_MIN;
 		}
 		dutyCycleA.store( dA );
-		waveA.write( dA * DUTY_CYCLE_MULT );
+		waveA.set_duty_cycle( dA );
 		break;
 	}
 	case 1:	{
 		//DutyCycleB
 		int32_t dB = dutyCycleB.load();
 		dB += DB_INC.load() * decoderMultiplier;
-		if ( dB > DUTY_CYCLE_MAX ) {
-			dB = DUTY_CYCLE_MAX;
+		int32_t fq = freqKhz.load();
+		if ( dB > fq ) {
+			dB = fq;
 		} else if ( dB < DUTY_CYCLE_MIN ) {
 			dB = DUTY_CYCLE_MIN;
 		}
 		dutyCycleB.store( dB );
-		waveB.write( dB * DUTY_CYCLE_MULT );
+		waveB.set_duty_cycle( dB );
 		break;
 	}
 	case 2:	{
 		//dephase
 		int32_t ph = dephase.load();
 		ph += PH_INC.load() * decoderMultiplier;
-		if ( ph > DEPHASE_MAX ) {
-			ph = DEPHASE_MAX;
+		int32_t fq = freqKhz.load();
+		if ( ph > fq ) {
+			ph = fq;
 		} else if ( ph < DEPHASE_MIN ) {
 			ph = DEPHASE_MIN;
 		}
 		dephase.store( ph );
-		waveB.dephase( ph * DEPHASE_MULT );
+		waveB.set_dephase( ph );
 		break;
 	}
 	case 3:	{
 		//Freq
 		int32_t fq = freqKhz.load();
+		int32_t old_fq = fq;
 		fq += FQ_INC.load() * decoderMultiplier;
 		if ( fq > FREQ_MAX ) {
 			fq = FREQ_MAX;
@@ -158,10 +157,21 @@ void trigger() {
 			fq = FREQ_MIN;
 		}
 		freqKhz.store( fq );
-		waveB.freq_khz( fq );
+		waveB.set_freq( fq );
 		//rewrite dutyCycles to maintain consistency
-		waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
-		waveB.write( dutyCycleB.load() *DUTY_CYCLE_MULT );
+		// uint32_t dA = dutyCycleA.load();
+		// dA = dA * fq / old_fq;
+		// dutyCycleA.store( dA );
+		// uint32_t dB = dutyCycleB.load();
+		// dB = dB * fq / old_fq;
+		// dutyCycleA.store( dB );
+		// uint32_t ph = dephase.load();
+		// ph = ph * fq / old_fq;
+		// dephase.store( ph );
+
+		// waveA.set_duty_cycle( dA );
+		// waveB.set_dephase( ph );
+		// waveB.set_duty_cycle( dB );
 		break;
 	}
 	}
@@ -186,19 +196,24 @@ int main() {
 	DB_INC.store( 1 );
 	PH_INC.store( 1 );
 
-	waveB.freq_khz( freqKhz.load() );
-	waveA.write( dutyCycleA.load() * DUTY_CYCLE_MULT );
-	waveB.write( dutyCycleB.load() * DUTY_CYCLE_MULT );
-	waveB.dephase( dephase.load() * DEPHASE_MULT );
+	waveB.set_freq( freqKhz.load() );
+	waveA.set_duty_cycle( dutyCycleA.load() );
+	waveB.set_duty_cycle( dutyCycleB.load() );
+	waveB.set_dephase( dephase.load() );
 
 	knob.rise( &trigger );
 	lcd.setCursor( TRUE );
-
-	lcd.printf( DA_PRINT"\n"DB_PRINT"\n"PH_PRINT"\n"FQ_PRINT,
-	            dutyCycleA.load() * DUTY_CYCLE_MULT * 100 ,
-	            dutyCycleB.load() * DUTY_CYCLE_MULT * 100 ,
-	            dephase.load()*DEPHASE_MULT * 100 ,
-	            freqKhz.load() );
+	uint32_t dA = dutyCycleA.load();
+	uint32_t dB = dutyCycleB.load();
+	uint32_t ph = dephase.load();
+	uint32_t fq = freqKhz.load();
+	lcd.printf(
+	    DA_PRINT DA_REF_PRINT "\n" DB_PRINT DB_REF_PRINT "\n" PH_PRINT
+	    PH_REF_PRINT "\n" FQ_PRINT FQ_REF_PRINT,
+	    dA , 100 * ( ( float )dA / fq ),
+	    dB , 100 * ( ( float )dB / fq ),
+	    ph , 100 * ( ( float )ph / fq ),
+	    fq , 96000 / fq );
 
 	lcd.moveCursor( COL_OFFSET + 3, 0 );
 
@@ -227,11 +242,9 @@ int main() {
 		if ( colinc.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
 			if ( temp != COL_LIM - 1 ) {
-				if ( row.load() != 3 && temp == COL_OFFSET + 1 ) {
-					temp = COL_OFFSET + 3;
-				} else {
-					temp++;
-				}
+
+				temp++;
+
 				rowpos[row.load()] = temp;
 				uint32_t rowTemp = row.load();
 				lcd.moveCursor( temp, rowTemp );
@@ -266,11 +279,8 @@ int main() {
 		if ( coldec.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
 			if ( temp != COL_OFFSET ) {
-				if ( row.load() != 3 && temp == COL_OFFSET + 3 ) {
-					temp = COL_OFFSET + 1;
-				} else {
-					temp--;
-				}
+
+				temp--;
 				rowpos[row.load()] = temp;
 				uint32_t rowTemp = row.load();
 				lcd.moveCursor( temp, rowTemp );
@@ -304,11 +314,17 @@ int main() {
 		}
 		if ( flagModified.load() ) {
 			lcd.cls();
-			lcd.printf( DA_PRINT"\n"DB_PRINT"\n"PH_PRINT"\n"FQ_PRINT,
-			            dutyCycleA.load() * DUTY_CYCLE_MULT * 100 ,
-			            dutyCycleB.load() * DUTY_CYCLE_MULT * 100 ,
-			            dephase.load()*DEPHASE_MULT * 100 ,
-			            freqKhz.load() );
+			uint32_t dA = dutyCycleA.load();
+			uint32_t dB = dutyCycleB.load();
+			uint32_t ph = dephase.load();
+			uint32_t fq = freqKhz.load();
+			lcd.printf(
+			    DA_PRINT DA_REF_PRINT "\n" DB_PRINT DB_REF_PRINT "\n" PH_PRINT
+			    PH_REF_PRINT "\n" FQ_PRINT FQ_REF_PRINT,
+			    dA , 100 * ( ( float )dA / fq ),
+			    dB , 100 * ( ( float )dB / fq ),
+			    ph , 100 * ( ( float )ph / fq ),
+			    fq , 96000 / fq );
 			lcd.moveCursor( rowpos[row.load()], row.load() );
 			flagModified.store( FALSE );
 		}
