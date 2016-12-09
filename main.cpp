@@ -145,10 +145,10 @@ void trigger() {
 		int32_t ph = dephase.load();
 		ph += PH_INC.load() * decoderMultiplier;
 		int32_t fq = freqKhz.load();
-		if ( ph > fq ) {
-			ph = fq;
+		if ( ph >= fq ) {
+			ph -= fq;
 		} else if ( ph < DEPHASE_MIN ) {
-			ph = DEPHASE_MIN;
+			ph += fq;
 		}
 		dephase.store( ph );
 		waveB.set_dephase( ph );
@@ -173,17 +173,17 @@ void trigger() {
 			dutyCycleA.store( fq );
 			waveA.set_duty_cycle( fq );
 		}
-		uint32_t ph = dephase.load();
-		if ( ph > fq ) {
-			dephase.store( fq );
-			waveB.set_dephase( fq );
-		}
 		uint32_t dB = dutyCycleB.load();
 		if ( dB > fq ) {
 			dutyCycleB.store( fq );
 			waveB.set_duty_cycle( fq );
 		}
-		flag |= ( 1 << 3 );
+		uint32_t ph = dephase.load();
+		if ( ph > fq ) {
+			dephase.store( fq );
+			waveB.set_dephase( fq );
+		}
+		flag |= 0x0F;
 		break;
 	}
 	}
