@@ -82,7 +82,7 @@ std::atomic<uint32_t> row;
 std::atomic<uint32_t> col;
 
 /*
- * LCD print control
+ * LCD print control bit1-DA | bit2-DB | bit3-PH | bit4-FQ
  */
 
 std::atomic<uint8_t> flagModified;
@@ -107,6 +107,7 @@ void trigger() {
 		decoderMultiplier = -1;
 	}
 	//DIfferent case for each row (which represents each value)
+	uint8_t flag = 0;
 	switch ( row.load() ) {
 	case 0:	{
 		//DutyCycleA
@@ -121,6 +122,7 @@ void trigger() {
 		}
 		dutyCycleA.store( dA );
 		waveA.set_duty_cycle( dA );
+		flag |= ( 1 << 0 );
 		break;
 	}
 	case 1:	{
@@ -135,6 +137,7 @@ void trigger() {
 		}
 		dutyCycleB.store( dB );
 		waveB.set_duty_cycle( dB );
+		flag |= ( 1 << 1 );
 		break;
 	}
 	case 2:	{
@@ -149,6 +152,7 @@ void trigger() {
 		}
 		dephase.store( ph );
 		waveB.set_dephase( ph );
+		flag |= ( 1 << 2 );
 		break;
 	}
 	case 3:	{
@@ -179,11 +183,12 @@ void trigger() {
 			dutyCycleB.store( fq );
 			waveB.set_duty_cycle( fq );
 		}
+		flag |= ( 1 << 3 );
 		break;
 	}
 	}
 	//Debounce for encoder
-	flagModified.store( TRUE );
+	flagModified.store( flag );
 	wait( 0.05f );
 	while ( knob.read() != 0 );
 	wait( 0.05f );
@@ -200,13 +205,13 @@ void debounce( DigitalIn in ) {
 }
 
 int main() {
-
+	//Initialize modified flag
+	flagModified.store( FALSE );
 	//Set buttons mode as pullUp
 	rowinc.mode( PullUp );
 	rowdec.mode( PullUp );
 	colinc.mode( PullUp );
 	coldec.mode( PullUp );
-
 	//Initialize the atomic values
 	freqKhz.store( FREQ_INIT );
 	dutyCycleA.store( DUTY_CYCLE_INIT );
@@ -329,20 +334,34 @@ int main() {
 			debounce( coldec );
 		}
 		// If there was any modification to any wave, the LCD will be updated.
-		if ( flagModified.load() ) {
+		uint8_t flag = flagModified.load();
+		if ( flag ) {
 			flagModified.store( FALSE );
-			lcd.cls();
-			uint32_t dA = dutyCycleA.load();
-			uint32_t dB = dutyCycleB.load();
-			uint32_t ph = dephase.load();
+			//Since everything is rewritten, the cls() might be unneccessary
 			uint32_t fq = freqKhz.load();
-			lcd.printf(
-			    DA_PRINT DA_REF_PRINT "\n" DB_PRINT DB_REF_PRINT "\n" PH_PRINT
-			    PH_REF_PRINT "\n" FQ_PRINT FQ_REF_PRINT,
-			    dA , 100 * ( ( float )dA / fq ),
-			    dB , 100 * ( ( float )dB / fq ),
-			    ph , 100 * ( ( float )ph / fq ),
-			    fq , 96000 / fq );
+			if ( flag & ( 1 << 0 ) ) {
+				//PRINT DA
+				lcd.locate( 0, 0 );
+				uint32_t dA = dutyCycleA.load();
+				lcd.printf( DA_PRINT DA_REF_PRINT, dA, 100 * ( ( float )dA / fq ) );
+			}
+			if ( flag & ( 1 << 1 ) ) {
+				//PRINT DB
+				uint32_t dB = dutyCycleB.load();
+				lcd.locate( 0, 1 );
+				lcd.printf( DB_PRINT DB_REF_PRINT, dB, 100 * ( ( float )dB / fq ) );
+			}
+			if ( flag & ( 1 << 2 ) ) {
+				//PRINT PH
+				uint32_t ph = dephase.load();
+				lcd.locate( 0, 2 );
+				lcd.printf( PH_PRINT PH_REF_PRINT, ph, 100 * ( ( float )ph / fq ) );
+			}
+			if ( flag & ( 1 << 3 ) ) {
+				//PRINT FQ
+				lcd.locate( 0, 3 );
+				lcd.printf( FQ_PRINT FQ_REF_PRINT, fq, 96000 / fq );
+			}
 			//Move cursor back to original position
 			lcd.moveCursor( rowpos[row.load()], row.load() );
 		}
