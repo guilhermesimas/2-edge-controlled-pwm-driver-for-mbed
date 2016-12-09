@@ -57,7 +57,7 @@ InterruptIn knob( p14 );
 DigitalIn decoderIn( p13 );
 
 PwmDoubleOut waveB ( p23 );
-PwmDoubleOut waveA ( p26 );
+PwmDoubleOut waveA ( p25 );
 
 DigitalIn rowinc( p12 );
 DigitalIn rowdec( p21 );
@@ -182,6 +182,9 @@ void trigger() {
 		if ( ph > fq ) {
 			dephase.store( fq );
 			waveB.set_dephase( fq );
+		}
+		if ( dB + ph >= fq ) {
+			waveB.set_duty_cycle( dutyCycleB.load() );
 		}
 		flag |= 0x0F;
 		break;
