@@ -96,19 +96,24 @@ std::atomic<uint32_t> DA_INC;
 std::atomic<uint32_t> DB_INC;
 std::atomic<uint32_t> PH_INC;
 
-
+/**
+ * Functions that triggers via interrupt when the encoder is turned
+ */
 
 void trigger() {
 	int decoderMultiplier = 1;
+	//FInd out the way it is turning, so as to know wether to increment or decrement
 	if ( decoderIn.read() == 0 ) {
 		decoderMultiplier = -1;
 	}
+	//DIfferent case for each row (which represents each value)
 	switch ( row.load() ) {
 	case 0:	{
 		//DutyCycleA
 		int32_t dA = dutyCycleA.load();
 		dA += DA_INC.load() * decoderMultiplier;
 		int32_t fq = freqKhz.load();
+		//Make sure it stays inbound
 		if ( dA > fq ) {
 			dA = fq;
 		} else if ( dA < DUTY_CYCLE_MIN ) {
@@ -158,7 +163,7 @@ void trigger() {
 		}
 		freqKhz.store( fq );
 		waveB.set_freq( fq );
-		//rewrite dutyCycles to maintain consistency
+		//rewrite dutyCycles and dephase in order to maintain consistency
 		uint32_t dA = dutyCycleA.load();
 		if ( dA > fq ) {
 			dutyCycleA.store( fq );
@@ -173,16 +178,20 @@ void trigger() {
 		if ( dB > fq ) {
 			dutyCycleB.store( fq );
 			waveB.set_duty_cycle( fq );
-
 		}
 		break;
 	}
 	}
+	//Debounce for encoder
 	flagModified.store( TRUE );
 	wait( 0.05f );
 	while ( knob.read() != 0 );
 	wait( 0.05f );
 }
+
+/**
+ * Debounce function for the mechanical buttons
+ */
 
 void debounce( DigitalIn in ) {
 	wait( 0.01f );
@@ -192,27 +201,30 @@ void debounce( DigitalIn in ) {
 
 int main() {
 
+	//Set buttons mode as pullUp
 	rowinc.mode( PullUp );
 	rowdec.mode( PullUp );
 	colinc.mode( PullUp );
 	coldec.mode( PullUp );
 
+	//Initialize the atomic values
 	freqKhz.store( FREQ_INIT );
 	dutyCycleA.store( DUTY_CYCLE_INIT );
 	dutyCycleB.store( DUTY_CYCLE_INIT );
 	dephase.store( DEPHASE_INIT );
-
+	//Initialize the increment values
 	FQ_INC.store( 1 );
 	DA_INC.store( 1 );
 	DB_INC.store( 1 );
 	PH_INC.store( 1 );
-
+	//Initializing waves
 	waveB.set_freq( freqKhz.load() );
 	waveA.set_duty_cycle( dutyCycleA.load() );
 	waveB.set_duty_cycle( dutyCycleB.load() );
 	waveB.set_dephase( dephase.load() );
-
+	//Setting up the interrupt on the encoder
 	knob.rise( &trigger );
+	//Seeting up the LCD
 	lcd.setCursor( TRUE );
 	uint32_t dA = dutyCycleA.load();
 	uint32_t dB = dutyCycleB.load();
@@ -225,16 +237,15 @@ int main() {
 	    dB , 100 * ( ( float )dB / fq ),
 	    ph , 100 * ( ( float )ph / fq ),
 	    fq , 96000 / fq );
-
 	lcd.moveCursor( COL_OFFSET + 3, 0 );
-
+	//Initializing rows and collumns
 	row.store( 0 );
 	col.store( COL_OFFSET + 3 );
-	/*
-	 * Cursor horizontal position
-	 */
-
+	//Setting cursor's horizontal position for each row
 	int rowpos [4] = {COL_OFFSET + 3, COL_OFFSET + 3, COL_OFFSET + 3, COL_OFFSET + 3};
+	/**
+	 * Main loop. Check if any button is pushed in order to modify row/collumn
+	 */
 	while ( 1 ) {
 		if ( rowinc.read() == 0 ) {
 			uint32_t temp = row.load();
@@ -250,12 +261,11 @@ int main() {
 			lcd.moveCursor( rowpos[temp], temp );
 			debounce( rowdec );
 		}
+		//When altering the collumn we are altering the INC variables
 		if ( colinc.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
 			if ( temp != COL_LIM - 1 ) {
-
 				temp++;
-
 				rowpos[row.load()] = temp;
 				uint32_t rowTemp = row.load();
 				lcd.moveCursor( temp, rowTemp );
@@ -265,13 +275,11 @@ int main() {
 					DA_INC.store( temp );
 					break;
 				}
-
 				case 1: {
 					uint32_t temp = DB_INC.load() / 10;
 					DB_INC.store( temp );
 					break;
 				}
-
 				case 2: {
 					uint32_t temp = PH_INC.load() / 10;
 					PH_INC.store( temp );
@@ -282,7 +290,6 @@ int main() {
 					FQ_INC.store( temp );
 					break;
 				}
-
 				}
 			}
 			debounce( colinc );
@@ -290,7 +297,6 @@ int main() {
 		if ( coldec.read() == 0 ) {
 			uint32_t temp = rowpos[row.load()];
 			if ( temp != COL_OFFSET ) {
-
 				temp--;
 				rowpos[row.load()] = temp;
 				uint32_t rowTemp = row.load();
@@ -318,11 +324,11 @@ int main() {
 					FQ_INC.store( temp );
 					break;
 				}
-
 				}
 			}
 			debounce( coldec );
 		}
+		// If there was any modification to any wave, the LCD will be updated.
 		if ( flagModified.load() ) {
 			flagModified.store( FALSE );
 			lcd.cls();
@@ -337,6 +343,7 @@ int main() {
 			    dB , 100 * ( ( float )dB / fq ),
 			    ph , 100 * ( ( float )ph / fq ),
 			    fq , 96000 / fq );
+			//Move cursor back to original position
 			lcd.moveCursor( rowpos[row.load()], row.load() );
 		}
 	}
