@@ -144,15 +144,17 @@ void pwmdoubleout_set_dephase      ( pwmdoubleout_t* obj, int reg_value ) {
 	int diff = reg_value - *obj->MRA;
 	*obj->MRA = reg_value;
 
-
-	*obj->MRB = *obj->MRB + diff;
 	//wraparound
-	if ( *obj->MRB >= LPC_PWM1->MR0 ) {
-		*obj->MRB = *obj->MRB - LPC_PWM1->MR0;
+	int newMRB = *obj->MRB + diff;
+	if ( newMRB < 0 ) {
+		newMRB += LPC_PWM1->MR0;
+	} else if ( newMRB >= LPC_PWM1->MR0 ) {
+		newMRB -= LPC_PWM1->MR0;
 	}
 	if ( *obj->MRA >= LPC_PWM1->MR0 ) {
 		*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
 	}
+	*obj->MRB = newMRB;
 	//debugging purposes
 	uint32_t mra = *obj->MRA;
 	uint32_t mrb = *obj->MRB;
