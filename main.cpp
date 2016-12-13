@@ -171,21 +171,22 @@ void trigger() {
 		uint32_t dA = dutyCycleA.load();
 		if ( dA > fq ) {
 			dutyCycleA.store( fq );
-			waveA.set_duty_cycle( fq );
+			dA = fq;
 		}
 		uint32_t dB = dutyCycleB.load();
 		if ( dB > fq ) {
 			dutyCycleB.store( fq );
-			waveB.set_duty_cycle( fq );
+			dB = fq;
 		}
 		uint32_t ph = dephase.load();
-		if ( ph > fq ) {
-			dephase.store( fq );
-			waveB.set_dephase( fq );
+		if ( ph >= fq ) {
+			dephase.store( 0 );
+			ph = 0;
 		}
-		if ( dB + ph >= fq ) {
-			waveB.set_duty_cycle( dutyCycleB.load() );
-		}
+
+		waveA.set_duty_cycle( dA );
+		waveB.set_dephase( ph );
+		waveB.set_duty_cycle( dB );
 		flag |= 0x0F;
 		break;
 	}

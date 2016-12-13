@@ -141,20 +141,26 @@ void pwmdoubleout_set_dephase      ( pwmdoubleout_t* obj, int reg_value ) {
 	// if ( reg_value == LPC_PWM1->MR0 ) {
 	// 	reg_value++;
 	// }
+	//Finding out the pulse width
+	int oldMRB = *obj->MRB;
 	int diff = reg_value - *obj->MRA;
 	*obj->MRA = reg_value;
+	int newMRB = *obj->MRB + diff;
 
 	//wraparound
-	int newMRB = *obj->MRB + diff;
+	*obj->MRB = newMRB;
 	if ( newMRB < 0 ) {
 		newMRB += LPC_PWM1->MR0;
-	} else if ( newMRB >= LPC_PWM1->MR0 ) {
-		newMRB -= LPC_PWM1->MR0;
 	}
-	if ( *obj->MRA >= LPC_PWM1->MR0 ) {
-		*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
+	if ( oldMRB < LPC_PWM1->MR0 && diff != LPC_PWM1->MR0 ) {
+		if ( newMRB >= LPC_PWM1->MR0 ) {
+			newMRB -= LPC_PWM1->MR0;
+		}
+		*obj->MRB = newMRB;
+		if ( *obj->MRA >= LPC_PWM1->MR0 ) {
+			*obj->MRA = *obj->MRA - LPC_PWM1->MR0;
+		}
 	}
-	*obj->MRB = newMRB;
 	//debugging purposes
 	uint32_t mra = *obj->MRA;
 	uint32_t mrb = *obj->MRB;
@@ -191,12 +197,15 @@ void pwmdoubleout_set_duty_cycle( pwmdoubleout_t* obj, int reg_value ) {
 
 	uint32_t mrb = *obj->MRA + reg_value;
 	if ( reg_value != LPC_PWM1->MR0 ) {
-		if ( mrb > LPC_PWM1->MR0 ) {
+		if ( mrb >= LPC_PWM1->MR0 ) {
 			//wraparound
 			mrb = mrb - LPC_PWM1->MR0;
 		}
-	}
-	if ( mrb == LPC_PWM1->MR0 ) {
+		//workaround
+		if ( *obj->MRA != 0 && mrb == 0 ) {
+			mrb = 1;
+		}
+	} else {
 		mrb++;
 	}
 	*obj->MRB = mrb;
