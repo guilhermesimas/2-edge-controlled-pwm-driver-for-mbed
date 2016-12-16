@@ -22,9 +22,9 @@ static constexpr auto DEPHASE_INIT = FREQ_INIT / 4; //25%
 /*
  * Limits for values
  */
-static constexpr auto FREQ_MAX = 1000;
-static constexpr auto DUTY_CYCLE_MAX = 1000;
-static constexpr auto DEPHASE_MAX = 1000;
+static constexpr auto FREQ_MAX = 99999;
+static constexpr auto DUTY_CYCLE_MAX = 99999;
+static constexpr auto DEPHASE_MAX = 99999;
 
 static constexpr auto FREQ_MIN = 0;
 static constexpr auto DUTY_CYCLE_MIN = 0;
@@ -35,16 +35,16 @@ static constexpr auto DEPHASE_MIN = 0;
  */
 
 static constexpr auto COL_OFFSET = 4; //first digit is at 4,Y
-static constexpr auto COL_LIM = 8; // 8th column is out of bounds
+static constexpr auto COL_LIM = 9; // 9th column is out of bounds
 
 /*
  * Strings format for printf
  */
 
-#define DA_PRINT "dA:<%04d>"
-#define DB_PRINT "dB:<%04d>"
-#define PH_PRINT "Ph:<%04d>"
-#define FQ_PRINT "Fq:<%04d>"
+#define DA_PRINT "dA:<%05d>"
+#define DB_PRINT "dB:<%05d>"
+#define PH_PRINT "Ph:<%05d>"
+#define FQ_PRINT "Fq:<%05d>"
 #define DA_REF_PRINT "=%04.1f%%"
 #define DB_REF_PRINT "=%04.1f%%"
 #define PH_REF_PRINT "=%04.1f%%"
@@ -146,9 +146,9 @@ void trigger() {
 		ph += PH_INC.load() * decoderMultiplier;
 		int32_t fq = freqKhz.load();
 		if ( ph >= fq ) {
-			ph -= fq;
+			ph = ph % fq;
 		} else if ( ph < DEPHASE_MIN ) {
-			ph += fq;
+			ph = ( ph % fq ) * ( -1 );
 		}
 		dephase.store( ph );
 		waveB.set_dephase( ph );
@@ -246,12 +246,12 @@ int main() {
 	    dB , 100 * ( ( float )dB / fq ),
 	    ph , 100 * ( ( float )ph / fq ),
 	    fq , 96000 / fq );
-	lcd.moveCursor( COL_OFFSET + 3, 0 );
+	lcd.moveCursor( COL_OFFSET + 4, 0 );
 	//Initializing rows and collumns
 	row.store( 0 );
-	col.store( COL_OFFSET + 3 );
+	col.store( COL_OFFSET + 4 );
 	//Setting cursor's horizontal position for each row
-	int rowpos [4] = {COL_OFFSET + 3, COL_OFFSET + 3, COL_OFFSET + 3, COL_OFFSET + 3};
+	int rowpos [4] = {COL_OFFSET + 4, COL_OFFSET + 4, COL_OFFSET + 4, COL_OFFSET + 4};
 	/**
 	 * Main loop. Check if any button is pushed in order to modify row/collumn
 	 */
